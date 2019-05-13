@@ -1,7 +1,7 @@
 import numpy as np
 import Dragonfly_config as rc
 from argparse import ArgumentParser
-from ConfigParser import SafeConfigParser
+import configparser
 from PyDragonfly import Dragonfly_Module, CMessage, copy_to_msg, copy_from_msg
 from time import time
 
@@ -23,7 +23,7 @@ class MessageWatcher(object):
         self.run()
         
     def load_config(self, config_file):
-        self.config = SafeConfigParser()
+        self.config = configparser.ConfigParser()
         self.config.read(config_file)
         self.msg_types = [x.upper() for x in self.config.options('messages')]
         self.msg_types.sort()
@@ -35,7 +35,7 @@ class MessageWatcher(object):
         for i in self.msg_types:
             self.mod.Subscribe(eval('rc.MT_%s' % (i)))
         self.mod.SendModuleReady()
-        print "Connected to Dragonfly at", server
+        print("Connected to Dragonfly at", server)
         
     def run(self):
         while True:
@@ -61,14 +61,14 @@ class MessageWatcher(object):
     def write(self):
         for msg_type, c in zip(self.msg_types, self.count):
             rate = c / self.diff_time
-            print "%40s %5.2f Hz" % (msg_type, rate)
+            print("%40s %5.2f Hz" % (msg_type, rate))
             if (('GROBOT_RAW_FEEDBACK' in msg_type) and (rate < 48.0)):
-                print "Raw feedback rate is too low!"
-                print "Raw feedback rate is too low!"
-                print "Raw feedback rate is too low!"
-                print "Raw feedback rate is too low!"
-        print "window was %0.3f seconds\n" % (self.diff_time)
-        print ""
+                print("Raw feedback rate is too low!")
+                print("Raw feedback rate is too low!")
+                print("Raw feedback rate is too low!")
+                print("Raw feedback rate is too low!")
+        print("window was %0.3f seconds\n" % (self.diff_time))
+        print("")
     
 if __name__ == "__main__":
     parser = ArgumentParser(description = "Display information about message flow")
