@@ -29,3 +29,4 @@ obj/*
 Debug/
 Release/
 modules/*/obj/*
+.idea/
