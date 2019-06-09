@@ -13,6 +13,9 @@
 #define MSEC_PER_RAW_SAMPLE              10
 #define SAMPLE_DT                        (RAW_COUNTS_PER_SAMPLE * MSEC_PER_RAW_SAMPLE) * 0.001
 
+#define MAX_ANALOG_CHANS                 16
+#define MAX_DIG_PER_SAMPLE               10
+
 typedef struct {
   int source_index;    // a zero-based index in the range 0..(N-1) for N spike sources (e.g. separate acquisition boxes)
   int reserved;        // for 64-bit alignment
@@ -28,6 +31,7 @@ typedef struct {
   double count_interval;  // [seconds]
   SPIKE_COUNT_DATA_TYPE counts[MAX_TOTAL_SPIKE_CHANS];
 } MDF_SPM_SPIKECOUNT;
+
 typedef struct {
   SAMPLE_HEADER sample_header;
   double source_timestamp;// [seconds]source timestamp of the pulse that caused this count to happen

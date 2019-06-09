@@ -132,6 +132,12 @@ typedef struct {
 #define MT_DEBUG_VECTOR             2160
 #define MT_SPM_SPIKE_SNIPPET        2170
 #define MT_SPM_SPIKE_TIMES          2171
+#define MT_REJECTED_SNIPPET         2172
+#define MT_RAW_CTSDATA              2173
+#define MT_SPIKE_SNIPPET            2174
+#define MT_DIGITAL_EVENT            2175
+#define MT_STIM_SYNC_EVENT          2176
+
 #define MT_XM_END_OF_SESSION        2180    // signal
 #define MT_IDLY_LABELLING           2190
 #define MT_IDLY_RESET_LABELLING     2200    // signal
@@ -146,6 +152,13 @@ typedef struct {
 #define MT_ROBOT_JOINT_COMMAND      2270
 #define MT_IDLEGATED_MOVEMENT_COMMAND    2280
 
+// ============================================================================
+// MACRO DEFINITIONS
+// ============================================================================
+#define DEFAULT_MM_IP               "localhost:7111"
+#define SNIPPETS_PER_MESSAGE        25
+#define SAMPLES_PER_SNIPPET         48
+#define LFPSAMPLES_PER_HEARTBEAT    10
 
 // ============================================================================
 // Message Data Formats
@@ -392,8 +405,63 @@ typedef struct {
     int     unit;
     int     box_id;
     int     length;             // of snippet data in bytes
-    short   snippet[48];
+    short   snippet[SAMPLES_PER_SNIPPET];
 } MDF_SPM_SPIKE_SNIPPET;
+
+typedef struct {
+    int     source_index;
+    int     channel;
+    int     unit;
+    int     reserved;
+    double  source_timestamp;
+    double  fPattern[3];
+    int     nPeak;
+    int     nValley;
+    short   snippet[SAMPLES_PER_SNIPPET];
+} SPIKE_SNIPPET;
+
+typedef struct {
+  SPIKE_SNIPPET ss[SNIPPETS_PER_MESSAGE];
+} MDF_SPIKE_SNIPPET;
+
+typedef struct {
+  int     source_index;
+  short   channel;
+  unsigned char unit;
+  unsigned char reserved1;
+  double  source_timestamp;
+  double  fPattern[3];
+  short   nPeak;
+  short   nValley;
+  int     rejectType;
+  short   snippet[SAMPLES_PER_SNIPPET];
+} REJECTED_SNIPPET;
+
+typedef struct {
+  REJECTED_SNIPPET rs[SNIPPETS_PER_MESSAGE];
+} MDF_REJECTED_SNIPPET;
+
+typedef struct {
+  int     source_index;
+  int     reserved;
+  double  source_timestamp;
+  short   data[LFPSAMPLES_PER_HEARTBEAT*(MAX_SPIKE_CHANS_PER_SOURCE+MAX_ANALOG_CHANS)];
+} MDF_RAW_CTSDATA;
+
+typedef struct {
+  int     source_index;
+  int     channel;
+  double  source_timestamp;
+  unsigned int data[4];
+} MDF_DIGITAL_EVENT;
+
+typedef struct {
+  int     source_index;
+  int     channel;
+  double  source_timestamp;
+  unsigned int data;
+  int     reserved;
+} MDF_STIM_SYNC_EVENT;
 
 #define MAX_SPIKE_TIMES_PER_PACKET 256
 typedef struct {
