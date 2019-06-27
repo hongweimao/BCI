@@ -8,9 +8,9 @@ def respond_to_ping(mod, msg, module_name):
     p = rc.MDF_PING()
     copy_from_msg(p, msg)
     
-    #print "PING received for '{0}'".format(p.module_name)
+    #print("PING received for '{0}'".format(p.module_name))
 
-    if (p.module_name.lower() == module_name.lower()) or (p.module_name == "*") or \
+    if (p.module_name.lower() == module_name.lower()) or (p.module_name == b'*') or \
         (dest_mod_id == mod.GetModuleID()):
         mdf = rc.MDF_PING_ACK()
         mdf.module_name = module_name

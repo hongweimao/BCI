@@ -1,14 +1,17 @@
 import sys
 import os
-import wx
 import re
 from traits.api import Str, HasTraits, DelegatesTo, List, This, \
                                 Dict, Any, Instance, Enum
 from traitsui.api import View, Item, TreeEditor, TreeNode, Group
 import subprocess
 from argparse import ArgumentParser
-from ConfigParser import SafeConfigParser
+from configparser import ConfigParser
 import appman
+
+from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow
+from PyQt5 import QtGui
+
 
 CONFIG_DIR = os.environ['BCI_CONFIG']
 
@@ -47,7 +50,7 @@ def parse_XM_config(filename):
     return data
 
 def parse_appman(filename, app):
-    parser = SafeConfigParser()
+    parser = ConfigParser()
     parser.read(filename)
 
     # data has to be a dictionary of descriptions (keys) and filenames (values)
@@ -83,7 +86,7 @@ class CfgFile(HasTraits):
     def _descendents_default(self):
         if self.config_type == 'MT':
             multi_task_file = self.directory + '/' + self.name
-            parser = SafeConfigParser()
+            parser = ConfigParser()
             parser.read(multi_task_file)
             mt_config = dict(parser.items('config'))
             mt_app_list = re.sub(r"[\n\r]+", '', mt_config['config_names']).split(',') 
@@ -123,7 +126,7 @@ class CfgFile(HasTraits):
                     l.append(CfgFile(name=os.path.relpath(kid, self.directory),
                              config_type='module_config', parent=self, directory=self.directory))
             except (ValueError) as e:
-                print "Error while reading 'appman.conf' file: ", e
+                print("Error while reading 'appman.conf' file: ", e)
         else:
             l = []
 
@@ -191,13 +194,15 @@ class CfgFileManager(HasTraits):
                 Item(editor=tree_editor, name='session', id='session', resizable=True, show_label=False),
                  resizable=True)
 
-class MainWindow(wx.Frame):
-    def __init__(self, parent, id, config_dir, session, root_files):
+class MainWindow(QMainWindow):
+    def __init__(self, config_dir, session, root_files):
         directory = '%s/%s' % (config_dir, session)
-        wx.Frame.__init__(self, parent, id, 'Config file tree', size=(800,400))
+        super(QMainWindow, self).__init__()
         self.cfg_file_manager = CfgFileManager(name=session, files=root_files, directory=directory)
         self.control = self.cfg_file_manager.edit_traits(parent=self, kind='subpanel').control
-        self.Show(True)
+        self.setCentralWidget(self.control)
+        self.setWindowTitle('Config file tree')
+        self.show()
 
 
 if __name__ == "__main__":
@@ -232,6 +237,6 @@ if __name__ == "__main__":
                   #'PVA'    : args.pva_file_name,
                   'appman' : args.appman_file_name}
 
-    app = wx.App(False)
-    frame = MainWindow(None, wx.ID_ANY, args.config_dir, args.session, root_files)
-    app.MainLoop()
+    app = QApplication(sys.argv)
+    frame = MainWindow(args.config_dir, args.session, root_files)
+    sys.exit(app.exec_())

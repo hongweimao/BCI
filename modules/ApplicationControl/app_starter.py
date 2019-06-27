@@ -4,9 +4,8 @@ import os
 import platform
 from argparse import ArgumentParser
 from PyDragonfly import Dragonfly_Module, CMessage, copy_from_msg, copy_to_msg, MT_EXIT, MT_KILL
-import PyDragonfly
 import Dragonfly_config as rc
-from ConfigParser import SafeConfigParser
+from configparser import ConfigParser
 import appman
 import platform
 
@@ -28,20 +27,20 @@ class AppStarter(object):
         self.mod.Subscribe(MT_KILL)
 
         self.mod.SendModuleReady()
-        print "Connected to Dragonfly at", server
+        print("Connected to Dragonfly at", server)
 
     # this one is slightly different than the one in Common/python, leave this one here
     def respond_to_ping(self, msg, module_name):
-        #print "PING received for '{0}'".format(p.module_name)
-
         dest_mod_id = msg.GetHeader().dest_mod_id
         p = rc.MDF_PING()
         copy_from_msg(p, msg)
 
-        if (p.module_name.lower() == module_name.lower()) or (p.module_name == "*") or \
+        print("PING received for '{0}'".format(p.module_name))
+
+        if (p.module_name.lower() == module_name.lower()) or (p.module_name == b"*") or \
             (dest_mod_id == self.mod.GetModuleID()):
             mdf = rc.MDF_PING_ACK()
-            mdf.module_name = module_name + ":" + self.host_name # + ":" + self.host_os
+            mdf.module_name = module_name + b":" + bytes(self.host_name, 'utf-8') # + ":" + self.host_os
             msg_out = CMessage(rc.MT_PING_ACK)
             copy_to_msg(mdf, msg_out)
             self.mod.SendMessage(msg_out)
@@ -55,12 +54,12 @@ class AppStarter(object):
 
                 if msg_type == rc.MT_APP_START:
 
-                    try:
+                    #try:
                         mdf = rc.MDF_APP_START()
                         copy_from_msg(mdf, msg) 
-                        config = mdf.config
+                        config = mdf.config.decode("utf-8")
                         
-                        print "Config: %s" % config
+                        print("Config: %s" % config)
 
                         # -- to do --
                         # get a list of all modules in appman.conf for this host
@@ -68,26 +67,27 @@ class AppStarter(object):
                         # start non-running modules
                         # -- to do --
                         
-                        print "Creating scripts"
+                        print("Creating scripts")
                         appman.create_script(config, self.host_name)
-                        print "Starting modules on host: %s" % self.host_name
+                        print("Starting modules on host: %s" % self.host_name)
                         appman.run_script(self.host_name)
 
                         self.mod.SendSignal(rc.MT_APP_START_COMPLETE)
 
-                    except Exception, e:
-                        print "ERROR: %s" % (e)
+                    #except Exception as e:
+                    #    print("ERROR: %s" % (e))
                     
                 elif msg_type == rc.MT_PING:
-                    print 'got ping'
-                    self.respond_to_ping(msg, 'AppStarter')
+                    print('got ping')
+                    self.respond_to_ping(msg, b'AppStarter')
+                    print('responded to ping')
                     
                 # we use this msg to stop modules individually
                 elif msg_type == MT_EXIT:
-                    print 'got exit'
+                    print('got exit')
                     
                 elif msg_type == MT_KILL:
-                    print 'got kill'
+                    print('got kill')
                     appman.kill_modules()
 
         
