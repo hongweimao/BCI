@@ -1,31 +1,32 @@
 #!/usr/bin/python
 
 import os
+import sys
 import appman
 import confman
-import subprocess as sp
 from argparse import ArgumentParser
-from ConfigParser import SafeConfigParser
+from configparser import ConfigParser
 from PyDragonfly import Dragonfly_Module, CMessage, copy_from_msg, copy_to_msg, MT_EXIT, MT_KILL
 from time import sleep
 import threading
 import Dragonfly_config as rc
 import re
-import wx
 import platform
+from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow, QMessageBox
+from PyQt5.QtCore import Qt
 
-from traits.api import HasTraits, Bool, Enum, Float, Str, List, File, \
-     Button, String, Instance
+from traits.api import HasTraits, Bool, Enum, Float, Str, List, File, Button, Instance
 from traitsui.api import Handler, View, Item, UItem, StatusItem, \
      Group, HGroup, VGroup, spring, EnumEditor, ButtonEditor, TextEditor, InstanceEditor
-from traitsui.wx.animated_gif_editor import AnimatedGIFEditor
+#from traitsui.wx.animated_gif_editor import AnimatedGIFEditor # TODO
 from output_stream import OutputStream
-
 
 SRC_DIR = os.environ['BCI_MODULES']
 CONFIG_DIR = os.environ['BCI_CONFIG']
 DATA_DIR = os.environ['BCI_DATA']
+OS_NAME = platform.system()
 
+APP = None
 
 def get_dirs(root, exclude=['attic']):
     dirs = []
@@ -55,7 +56,7 @@ class Dragonfly_Read_Thread(threading.Thread):
         return self.result
 
     def stop(self):
-        #print "Dragonfly_Read_Thread: Done, exiting.."
+        #print("Dragonfly_Read_Thread: Done, exiting..")
         self.stoprequest.set()
 
     def run(self):
@@ -76,12 +77,12 @@ class Dragonfly_Read_Thread(threading.Thread):
             if self.timeout > 0:
                 timeout = timeout - 1
                 if timeout == 0:
-                    #print "Timout reached"
+                    #print("Timout reached")
                     self.stoprequest.set()
 
 
 class SessionManager(HasTraits):
-    parent = Instance(wx.Frame)
+    parent = Instance(QMainWindow)
 
     config_dirs = get_dirs(CONFIG_DIR, exclude=['default', 'attic'])
     configs = Enum(*config_dirs)
@@ -90,8 +91,8 @@ class SessionManager(HasTraits):
     #monkeys = Enum(*monkey_dirs)
     monkeys = Enum(['KingKong', 'Sim'])
 
-    calib_options = {1:'New Calibration', 2:'From Previous Session', 3:'From Specific Session'}
-    calib_opts = Enum(calib_options.keys())
+    calib_options = {1: 'New Calibration', 2: 'From Previous Session', 3: 'From Specific Session'}
+    calib_opts = Enum(list(calib_options.keys()))
 
     calib_session = Str
     calib_session_list = List
@@ -116,7 +117,7 @@ class SessionManager(HasTraits):
     modules = Button()
     kill = Button()
 
-    statusbar_text = output = OutputStream(max_len=3000) #Instance(OutputStream) #Str("Ready")
+    statusbar_text = OutputStream()
 
     start_button_label = Str('Start')
 
@@ -124,7 +125,7 @@ class SessionManager(HasTraits):
     stop_enabled = Bool(True)
     config_enabled = Bool(True)
     modules_enabled = Bool(True)
-    kill_enabled = Bool(True)
+    kill_enabled = Bool(OS_NAME == "Linux")
 
     session_num = None
     module_id_list = None
@@ -159,7 +160,7 @@ class SessionManager(HasTraits):
                             Item(name='calib_opts', editor=EnumEditor(values=calib_options), enabled_when='calib_opts_enabled', label='CalibOpt', show_label=False),
                             visible_when='calib_opts_visible==True'),
                      VGroup(Item(name='session_label', show_label=False, style='readonly'),
-                            Item(name='calib_session', width=175, editor = EnumEditor(name = 'calib_session_list'), enabled_when='calib_session_enabled', show_label=False),
+                            Item(name='calib_session', width=175, editor=EnumEditor(name='calib_session_list'), enabled_when='calib_session_enabled', show_label=False),
                             visible_when='calib_session_visible==True'),
                      springy=True),
 
@@ -168,28 +169,25 @@ class SessionManager(HasTraits):
                        Item(name='stop', show_label=False, enabled_when='stop_enabled', visible_when='stop_visible==True'),
                        Item(name='kill', show_label=False, enabled_when='kill_enabled'),
                        Item(name='config', show_label=False, enabled_when='config_enabled'),
-                       #Item(name='modules', show_label=False, enabled_when='modules_enabled')
                      ),
                     ),
-                    HGroup(Item(name='busy_anim_file', editor=AnimatedGIFEditor(), show_label=False, visible_when='appman_busy==True'),
-                         Item(name='running_icon_file', editor=AnimatedGIFEditor(), show_label=False, visible_when='session_running==True'),
-                         Item(name='error_icon_file', editor=AnimatedGIFEditor(), show_label=False, visible_when='error_flag==True'),
+                    HGroup(
+                         #Item(name='busy_anim_file', editor=AnimatedGIFEditor(), show_label=False, visible_when='appman_busy==True'),
+                         #Item(name='running_icon_file', editor=AnimatedGIFEditor(), show_label=False, visible_when='session_running==True'),
+                         #Item(name='error_icon_file', editor=AnimatedGIFEditor(), show_label=False, visible_when='error_flag==True'),
                          Item('statusbar_text', editor=InstanceEditor(), show_label=False, resizable=True, height=100, style='custom')) #springy=True,
-                         #Item(name='statusbar_text', show_label=False, style='custom', resizable=True))
                  ))
 
-    #def __init__(self, **traits):
-    #    HasTraits.__init__(self, **traits)
-    def __init__(self):
-        super(SessionManager, self).__init__()
+    def __init__(self, **traits):
+        HasTraits.__init__(self, **traits)
 
         last_app = appman.get_last()
-        print last_app
+        print(last_app)
         if last_app is not None:
             self.configs = last_app
         else:
             appman.write_last(self.configs)
-            
+
         self.check_multi_task_config()
         self.get_last_subject()
 
@@ -199,7 +197,7 @@ class SessionManager(HasTraits):
         self.modman_frame = modman.MainWindow(self.parent, -1, self.statusbar_text, self.modman_closing)
 
     def modman_closing(self):
-        print "modman exiting..."
+        print("modman exiting...")
         self.modman_frame = None
 
     #def modman_update(self):
@@ -208,7 +206,7 @@ class SessionManager(HasTraits):
 
     def update_status(self, status):
         self.statusbar_text.write(status + '\n')
-        print "%s" % status
+        print("%s" % status)
 
     def _configs_changed(self):
         self.check_multi_task_config()
@@ -261,13 +259,13 @@ class SessionManager(HasTraits):
                 self.start_enabled = True
                 self.calib_session_visible = True
 
-                print self.calib_session
+                print(self.calib_session)
 
                 if (self.calib_options[self.calib_opts] == "From Specific Session"):
                     self.calib_session_enabled = True
 
                     if self.calib_session not in self.calib_session_list:
-                        print "here"
+                        print("here")
                         self.calib_session = self.calib_session_list[-1]
 
                 else:
@@ -285,7 +283,7 @@ class SessionManager(HasTraits):
         for sub in self.subscriptions:
             self.mod.Subscribe(sub)
         self.mod.SendModuleReady()
-        print "Connected to Dragonfly at", server
+        print("Connected to Dragonfly at", server)
 
 
     def disconnect(self):
@@ -297,9 +295,11 @@ class SessionManager(HasTraits):
         mdf = rc.MDF_PING_ACK()
         copy_from_msg(mdf, msg)
 
-        if mdf.module_name in data['module_list']:
-            data['module_id_list'][msg.GetHeader().src_mod_id] = mdf.module_name
-            data['module_list'].remove(mdf.module_name)
+        module_name = mdf.module_name.decode("utf-8")
+
+        if module_name in data['module_list']:
+            data['module_id_list'][msg.GetHeader().src_mod_id] = module_name
+            data['module_list'].remove(module_name)
 
         if not data['module_list']:
             result = 1
@@ -313,10 +313,10 @@ class SessionManager(HasTraits):
         mdf = rc.MDF_PING_ACK()
         copy_from_msg(mdf, msg)
 
-        module_info = mdf.module_name.split(':')
-        
-        print module_info
-        
+        module_info = mdf.module_name.decode("utf-8") .split(':')
+
+        print(module_info)
+
         if (module_info[0] == "AppStarter") and (module_info[1] in data['host_list']):
             data['host_id_list'][msg.GetHeader().src_mod_id] = module_info[1]
             data['host_list'].remove(module_info[1])
@@ -347,7 +347,7 @@ class SessionManager(HasTraits):
         if msg.GetHeader().src_mod_id in data['module_id_list']:
             del data['module_id_list'][msg.GetHeader().src_mod_id]
         else:
-            print "Unexpected module id: {0}".format(msg.GetHeader().src_mod_id)
+            print("Unexpected module id: {0}".format(msg.GetHeader().src_mod_id))
 
         if not data['module_id_list']:
             result = 1
@@ -374,15 +374,15 @@ class SessionManager(HasTraits):
 
     def send_PING(self, module_name):
         mdf = rc.MDF_PING()
-        mdf.module_name = module_name
+        mdf.module_name = bytes(module_name, 'utf-8')
         msg = CMessage(rc.MT_PING)
         copy_to_msg(mdf, msg)
         #return msg
-        self.mod.SendMessage(msg);
+        self.mod.SendMessage(msg)
 
     def send_APP_START(self, config):
         mdf = rc.MDF_APP_START()
-        mdf.config = config
+        mdf.config = bytes(config, 'utf-8')
         msg = CMessage(rc.MT_APP_START)
         copy_to_msg(mdf, msg)
         self.mod.SendMessage(msg)
@@ -403,13 +403,14 @@ class SessionManager(HasTraits):
 
     def wait_for_dragonfly_thread(self, raise_exception=True):
         while(self.rd_thread.isAlive()):
-            wx.Yield()
+            APP.processEvents()
             if (self.session_starting == False) and (self.session_ending == False) and \
                (self.session_running == False):
                 self.rd_thread.stop()
                 if raise_exception == True:
                     raise RuntimeError('Cancelled')
             sleep(0.010)
+        print("thread is dead")
 
     def _config_fired(self):
         #self.modman_frame = None
@@ -420,7 +421,7 @@ class SessionManager(HasTraits):
             else:
                 root_files = {'XM' : 'XM.config', 'appman' : 'appman.conf'}
 
-            frame = confman.MainWindow(self.parent, -1, CONFIG_DIR, self.configs, root_files)
+            frame = confman.MainWindow(CONFIG_DIR, self.configs, root_files)
 
         except (ValueError, IOError) as e:
             self.update_status("%s" % e)
@@ -428,19 +429,20 @@ class SessionManager(HasTraits):
 
 
     def _kill_fired(self):
-        dlg = wx.MessageDialog(self.parent,
-            "Do you really want to kill all running modules?",
-            "Confirm Kill", wx.OK|wx.CANCEL|wx.ICON_QUESTION)
-        result = dlg.ShowModal()
-        dlg.Destroy()
-        if result == wx.ID_OK:
+        dlg = QMessageBox()
+        dlg.setText("Do you really want to kill all running modules?")
+        dlg.setIcon(QMessageBox.Question)
+        dlg.setWindowTitle("Confirm Kill")
+        dlg.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+        result = dlg.exec_()
+
+        if result == QMessageBox.Ok:
             self.mod.SendSignal(MT_KILL)
             self.error_flag = False
             self.start_enabled = True
             self.module_id_list = None
             #self.kill_enabled = False
             self.update_status("Modules killed")
-
 
     def do_stop_modules(self):
         try:
@@ -454,6 +456,9 @@ class SessionManager(HasTraits):
 
             self.session_ending = True
 
+            if self.rd_thread:
+                self.rd_thread.stop()
+
             # prep Dragonfly read thread
             data = {'module_id_list': self.module_id_list}
             self.rd_thread = Dragonfly_Read_Thread(self.mod, [rc.MT_EXIT_ACK], data, self.proc_modules_EXIT_ACK, 300)
@@ -465,9 +470,10 @@ class SessionManager(HasTraits):
 
             result = self.rd_thread.get_result()
             if result == 0:
-                self.kill_enabled = True
                 self.update_status("Some modules did not respond: %s" % (', '.join(map(str, self.module_id_list.values()))))
-                raise RuntimeError("!! Click KILL to close any modules still running !!")
+                if OS_NAME == "Linux":
+                    self.kill_enabled = True
+                    raise RuntimeError("!! Click KILL to close any modules still running !!")
 
             if self.session_num is not None:
                 self.update_status("Session #%s is terminated" % self.session_num)
@@ -477,7 +483,7 @@ class SessionManager(HasTraits):
             self.error_flag = False
             self.start_enabled = True
 
-        except RuntimeError, e:
+        except RuntimeError as e:
             self.update_status("%s" % e)
             self.error_flag = True
 
@@ -493,14 +499,12 @@ class SessionManager(HasTraits):
             appman.stop_modules(self.mod)
             self.error_flag = False
             self.start_enabled = True
+            return
 
-        #elif (self.multi_task_config == True) and (self.session_running == True):
         elif (self.session_running == True):
-            self.session_running = False
             self.session_interrupted = True
 
-        else:
-            self.do_stop_modules()
+        self.do_stop_modules()
 
 
     def _start_fired(self):
@@ -537,7 +541,7 @@ class SessionManager(HasTraits):
                 self.update_calib_sessions()
 
                 if self.multi_task_config == True:
-                    parser = SafeConfigParser()
+                    parser = ConfigParser()
                     parser.read(self.multi_task_file)
                     config = dict(parser.items('config'))
 
@@ -571,10 +575,10 @@ class SessionManager(HasTraits):
                     # ------------------------------------------------------------------------
                     self.update_status("Pinging AppStarter modules...")
 
-                    host_list = hosts.keys()
-                    self.host_id_list = {};
+                    host_list = list(hosts.keys())
+                    self.host_id_list = {}
 
-                    print host_list
+                    print(host_list)
 
                     # prep Dragonfly read thread
                     data = {'host_list': host_list, 'host_id_list': self.host_id_list}
@@ -596,7 +600,7 @@ class SessionManager(HasTraits):
                     self.update_status("Starting modules...")
 
                     # prep Dragonfly read thread
-                    data = {'host_id_list': self.host_id_list.keys()}
+                    data = {'host_id_list': list(self.host_id_list.keys())}
                     self.rd_thread = Dragonfly_Read_Thread(self.mod, [rc.MT_APP_START_COMPLETE], data, self.proc_APP_START_COMPLETE, 300)
                     self.rd_thread.start()
 
@@ -615,7 +619,7 @@ class SessionManager(HasTraits):
                     self.update_status("Pinging modules..")
 
                     num_retries = 50
-                    self.module_id_list = {};
+                    self.module_id_list = {}
                     module_list = []
                     for h in hosts.keys():
                         module_list = module_list + hosts[h]
@@ -734,27 +738,25 @@ class SessionManager(HasTraits):
                         self.rd_thread.start()
                         self.wait_for_dragonfly_thread(False)
 
-                        if self.session_interrupted == True:
-                            #done = True
-                            break;
+                        if self.session_interrupted:
+                            break
 
                 if self.multi_task_config == True:
                     self.update_status("Multi task session is completed, terminating..")
                 else:
                     if self.session_interrupted == False:
-                        self.update_status("Session is completed, terminating..")
-
-                    self.do_stop_modules()
-
+                        self.update_status("Session is completed")
+                        self.do_stop_modules()
 
             except (RuntimeError, ValueError) as e:
                 self.update_status("%s" % e)
                 self.error_flag = True
 
-                if e.message == "Cancelled":
+                if e.args[0] == "Cancelled":
                     self.update_status("!! Click STOP or KILL to close any modules that already started running ..")
                     self.start_enabled = False
-                    self.kill_enabled = True
+                    if OS_NAME == "Linux":
+                        self.kill_enabled = True
 
             finally:
                 self.enable_gui()
@@ -765,44 +767,44 @@ class SessionManager(HasTraits):
                 self.session_running = False
 
 
-class MainWindow(wx.Frame):
+class MainWindow(QMainWindow):
     def __init__(self, mm_ip): #, sm):
-        wx.Frame.__init__(self, None, -1, 'Application Manager', wx.DefaultPosition, \
-                          wx.DefaultSize, wx.CAPTION|wx.CLOSE_BOX|wx.SYSTEM_MENU|wx.RESIZE_BORDER|wx.MINIMIZE_BOX)
+        super(QMainWindow, self).__init__(flags=Qt.Dialog)
         self.sm = SessionManager()
         self.sm.connect(mm_ip)
         self.sm.parent = self
-        self.sm.edit_traits(parent=self, kind='subpanel')
-        self.Fit()
-        self.Show(True)
-        self.Bind(wx.EVT_CLOSE, self.OnClose)
+        self.subpanel = self.sm.edit_traits(parent=self, kind='subpanel').control
+        self.setCentralWidget(self.subpanel)
+        self.setWindowTitle('Application Manager')
+        self.show()
 
-    def OnClose(self, event):
-        if self.sm.session_running == True:
-            dlg = wx.MessageDialog(self,
-                "There is a session running. Do you really want to exit?",
-                "Confirm Exit", wx.OK|wx.CANCEL|wx.ICON_QUESTION)
-            result = dlg.ShowModal()
-            dlg.Destroy()
-            if result == wx.ID_OK:
-                self.doClose()
-        else:
-            self.doClose()
+    def closeEvent(self, event):
+        if self.sm.session_running:
+            dlg = QMessageBox()
+            dlg.setText("There is a session running. Do you really want to exit?")
+            dlg.setIcon(QMessageBox.Question)
+            dlg.setWindowTitle("Confirm Exit")
+            dlg.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+            result = dlg.exec_()
 
-    def doClose(self):
-        self.Destroy()
+            if result == QMessageBox.Ok:
+                self.sm.update_status("Exiting Appman GUI..");
+                self.sm.session_interrupted = True
+                self.sm.do_stop_modules()
+            else:
+                event.ignore()
+                return
+
+        print("Disconnecting from MM")
         self.sm.disconnect()
 
 
-
 if __name__ == "__main__":
-    parser = ArgumentParser(description = "Starts session modules")
+    parser = ArgumentParser(description="Starts session modules")
     parser.add_argument(type=str, dest='mm_ip', nargs='?', default='127.0.0.1:7111')
     args = parser.parse_args()
-    print("Using MM IP=%s" % (args.mm_ip))
+    print("Using MM IP=%s" % args.mm_ip)
 
-    app = wx.App(False)
+    APP = QApplication(sys.argv)
     frame = MainWindow(args.mm_ip)
-    app.MainLoop()
-
-
+    sys.exit(APP.exec_())
