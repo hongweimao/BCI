@@ -12,13 +12,17 @@ import threading
 import Dragonfly_config as rc
 import re
 import platform
-from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow, QMessageBox
+from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QLabel
 from PyQt5.QtCore import Qt
 
-from traits.api import HasTraits, Bool, Enum, Float, Str, List, File, Button, Instance
-from traitsui.api import Handler, View, Item, UItem, StatusItem, \
-     Group, HGroup, VGroup, spring, EnumEditor, ButtonEditor, TextEditor, InstanceEditor
-#from traitsui.wx.animated_gif_editor import AnimatedGIFEditor # TODO
+from traitsui.qt4.editor import Editor
+from traitsui.basic_editor_factory import BasicEditorFactory
+from PyQt5.QtGui import QMovie
+from pyface.image_resource import ImageResource
+
+import traits
+from traits.api import HasTraits, Bool, Enum, Str, List, Button, Instance, Property, Any
+from traitsui.api import View, Item, ImageEditor, HGroup, VGroup, EnumEditor, ButtonEditor, InstanceEditor
 from output_stream import OutputStream
 
 SRC_DIR = os.environ['BCI_MODULES']
@@ -81,6 +85,34 @@ class Dragonfly_Read_Thread(threading.Thread):
                     self.stoprequest.set()
 
 
+class MovieEditor(BasicEditorFactory):
+    # The editor class to be created:
+    klass = Property
+
+    def _get_klass(self):
+        """ Returns the editor class to be instantiated.
+        """
+        return _MovieEditor
+
+
+class _MovieEditor(Editor):
+    movie = Any
+
+    def init(self, parent):
+        """ Finishes initializing the editor by creating the underlying toolkit
+            widget.
+        """
+        self.control = QLabel()
+        movie = QMovie(self.value)
+        self.control.setMovie(movie)
+        movie.start()
+
+    #-------------------------------------------------------------------------
+    #  Updates the editor when the object trait changes external to the editor:
+    #-------------------------------------------------------------------------
+    def update_editor(self):
+        pass
+
 class SessionManager(HasTraits):
     parent = Instance(QMainWindow)
 
@@ -136,11 +168,13 @@ class SessionManager(HasTraits):
     subscriptions = [rc.MT_PING_ACK, rc.MT_APP_START_COMPLETE, rc.MT_SESSION_CONFIG,
                      rc.MT_EXIT_ACK, rc.MT_XM_END_OF_SESSION]
 
-    busy_anim_file = File(SRC_DIR + '/ApplicationControl/busy.gif')
     appman_busy = Bool(False)
-    error_icon_file = File(SRC_DIR + '/ApplicationControl/error.gif')
     error_flag = Bool(False)
-    running_icon_file = File(SRC_DIR + '/ApplicationControl/running.gif')
+
+    search_path = [os.path.dirname(traits.api.__file__)]
+    busy_anim_file = Str('busy.gif')
+    error_icon_file = ImageResource('error', search_path=search_path)
+    running_icon_file = ImageResource('running', search_path=search_path)
 
     session_starting = Bool(False)
     session_running = Bool(False)
@@ -172,9 +206,9 @@ class SessionManager(HasTraits):
                      ),
                     ),
                     HGroup(
-                         #Item(name='busy_anim_file', editor=AnimatedGIFEditor(), show_label=False, visible_when='appman_busy==True'),
-                         #Item(name='running_icon_file', editor=AnimatedGIFEditor(), show_label=False, visible_when='session_running==True'),
-                         #Item(name='error_icon_file', editor=AnimatedGIFEditor(), show_label=False, visible_when='error_flag==True'),
+                         Item(name='busy_anim_file', editor=MovieEditor(), show_label=False, visible_when='appman_busy==True'),
+                         Item(name='running_icon_file', editor=ImageEditor(), show_label=False, visible_when='session_running==True'),
+                         Item(name='error_icon_file', editor=ImageEditor(), show_label=False, visible_when='error_flag==True'),
                          Item('statusbar_text', editor=InstanceEditor(), show_label=False, resizable=True, height=100, style='custom')) #springy=True,
                  ))
 
