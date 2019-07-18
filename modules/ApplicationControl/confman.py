@@ -53,7 +53,6 @@ def parse_appman(filename, app):
 
     # data has to be a dictionary of descriptions (keys) and filenames (values)
     data = {'module_config_files': set()}
-    modules = []
     for section in parser.sections():
         if section[:7] == 'module ':
             module = section[7:]
@@ -184,8 +183,7 @@ class CfgFileManager(HasTraits):
                     hide_root=True, editable=False)
 
     view = View(Item(name='directory', show_label=False, style='readonly'),
-                Item(editor=tree_editor, name='session', id='session', resizable=True, show_label=False),
-                 resizable=True)
+                Item(editor=tree_editor, name='session', id='session', resizable=True, show_label=False), resizable=True)
 
 class MainWindow(QMainWindow):
     def __init__(self, config_dir, session, root_files):
@@ -204,14 +202,14 @@ if __name__ == "__main__":
     except KeyError:
         raise ValueError("Environment variable BCI_CONFIG is not set.")
 
-    parser = ArgumentParser( \
+    parser = ArgumentParser(
         description="Manage config file tree for "
         "robot brain control experiment.")
 
     parser.add_argument('session', type=str, action='store')
     parser.add_argument('-x', '--xmfile',
-                      dest='xm_file_name', default='XM.config',
-                      metavar='xm_config_file name')
+                        dest='xm_file_name', default='XM.config',
+                        metavar='xm_config_file name')
     #parser.add_argument('-p', '--pvafile',
     #                  dest='pva_file_name', default='Extraction.conf',
     #                  metavar='pva_config_file name')
@@ -219,8 +217,8 @@ if __name__ == "__main__":
                         dest='appman_file_name', default='appman.conf',
                         metavar='appman_file_name')
     parser.add_argument('-r', '--root',
-                      dest='config_dir', default=bci_config,
-                      metavar='/path/to/config/dir/root')
+                        dest='config_dir', default=bci_config,
+                        metavar='/path/to/config/dir/root')
     args = parser.parse_args()
 
     #print "Loading from: %s\nXM file:  %s; \nPVA file: %s" % \

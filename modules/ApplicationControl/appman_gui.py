@@ -448,15 +448,13 @@ class SessionManager(HasTraits):
         print("thread is dead")
 
     def _config_fired(self):
-        #self.modman_frame = None
-
         try:
-            if self.multi_task_config == True:
-                root_files = {'MT' : 'multi_task.config'}
+            if self.multi_task_config:
+                root_files = {'MT': 'multi_task.config'}
             else:
-                root_files = {'XM' : 'XM.config', 'appman' : 'appman.conf'}
+                root_files = {'XM': 'XM.config', 'appman': 'appman.conf'}
 
-            frame = confman.MainWindow(CONFIG_DIR, self.configs, root_files)
+            confman.MainWindow(CONFIG_DIR, self.configs, root_files)
 
         except (ValueError, IOError) as e:
             self.update_status("%s" % e)
