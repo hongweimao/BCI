@@ -101,7 +101,7 @@ class CfgFile(HasTraits):
             for kid in task_state_config_files:
                 l.append(CfgFile(name=kid, config_type='task_state', directory=self.directory,
                                  parent=self))
-            if fd.has_key('tool_change_config_files'):
+            if 'tool_change_config_files' in fd:
                 tool_change_config_files = fd['tool_change_config_files']
                 for kid in tool_change_config_files:
                     l.append(CfgFile(name=kid, config_type='tool_change', directory=self.directory,
