@@ -27,7 +27,7 @@ class _OutputStreamViewHandler(Handler):
             ed.control.SetInsertionPointEnd()
         elif ETSConfig.toolkit == 'qt4':
             # With qt4, the control is a PyQt4.QtGui.QTextEdit instance.
-            from PyQt4.QtGui import QTextCursor
+            from PyQt5.QtGui import QTextCursor
             ed.control.moveCursor(QTextCursor.End)
 
 

@@ -21,6 +21,7 @@
 *.dll
 *.mex*
 *.asv
+*.txt
 *~
 *#*#
 *.so
@@ -29,3 +30,4 @@ obj/*
 Debug/
 Release/
 modules/*/obj/*
+.idea/

@@ -5,7 +5,7 @@ import re
 import copy
 import itertools as it
 from glob import glob
-from ConfigParser import SafeConfigParser
+from configparser import ConfigParser
 import subprocess as sp
 import stat
 from argparse import ArgumentParser
@@ -68,7 +68,7 @@ def _detect_directory(module, verbose=False):
             "for module %s" % (module))
         #print "Warning: Failed to guess directory name for module %s" % (module)
     if verbose:
-        print "Found directory: %s" % (directory)
+        print("Found directory: %s" % (directory))
     return directory
 
 
@@ -128,10 +128,11 @@ def _detect_module_file_and_type(module, directory, verbose=False):
         elif len(typed_module_files) > 1:
             _raise_too_many_files(potential_module_files)
         else:
-            module_file = typed_module_files.keys()[0]
-            module_type = typed_module_files.values()[0]
+            first_file = next(iter(typed_module_files.items()))
+            module_file = first_file[0]
+            module_type = first_file[1]
     if verbose:
-        print "Found module file: %s" % (module_file)
+        print("Found module file: %s" % (module_file))
     return os.path.basename(module_file), module_type
 
 
@@ -190,25 +191,24 @@ def _detect_config(module, app, config, verbose=False):
     Automatic detection of several module configuration parameters:
         source directory, script/executable file, type, config file
     '''
-    if not config.has_key('directory'):
+    if 'directory' not in config:
         config['directory'] = _detect_directory(module, verbose=verbose)
     else:
         config['directory'] = os.path.expandvars(config['directory'])
 
-    if not config.has_key('module_file'):
+    if 'module_file' not in config:
         module_file, module_type = \
             _detect_module_file_and_type(module, config['directory'])
         config['module_file'] = module_file
         config['type'] = module_type
 
-    config.setdefault('type', \
-        _detect_type(config['module_file'], fail_hard=True))
+    config.setdefault('type', _detect_type(config['module_file'], fail_hard=True))
 
     # copy from config_file if it's present
-    if config.has_key('config_file') and not config.has_key('conf_file'):
+    if 'config_file' in config and 'conf_file' not in config:
         config['conf_file'] = config['config_file']
         del config['config_file']
-    if config.has_key('conf_file'):
+    if 'conf_file' in config:
         if config['conf_file'] != 'None':
             # if conf_file parameter starts with '/' in it, it is a full path
             # otherwise prepend app directory
@@ -218,8 +218,7 @@ def _detect_config(module, app, config, verbose=False):
 
             # bug out if file does not exist
             if not os.path.exists(config['conf_file']):
-                raise ValueError('specified config file %s does not exist' % \
-                    (config['conf_file']))
+                raise ValueError('specified config file %s does not exist' % (config['conf_file']))
     else:
         config['conf_file'] = _detect_conf_file(module, app, verbose=verbose)
     config.setdefault('use_screen', True)
@@ -249,10 +248,10 @@ def _compose_line(module, app, config):
             cmd = 'start'
             if use_screen == True:
                 cmd += ' /MIN '
-            cmdline_items = [killtag, cmd, "python", '"%s"' % full_mfile, '"%s"' % conf_file, server]
+            cmdline_items = [killtag, cmd, "python3", '"%s"' % full_mfile, '"%s"' % conf_file, server]
 
         else:
-            cmdline_items = [killtag, "python", full_mfile, conf_file, server]
+            cmdline_items = [killtag, "python3", full_mfile, conf_file, server]
         
     elif mtype == 'MATLAB':
         if os_name == "Windows":
@@ -326,7 +325,7 @@ def create_script(app, host, appman_file=None, \
         appman_file = 'appman.conf'
     
     conf_file = os.path.join(config_dir, app, appman_file)
-    parser = SafeConfigParser()
+    parser = ConfigParser()
     if not os.path.isfile(conf_file):
         raise ValueError('%s not found' % (conf_file))
     parser.read(conf_file)
@@ -392,7 +391,7 @@ def get_host_modules(app, host_name=None, appman_file=None, config_dir=CONFIG_DI
         appman_file = 'appman.conf'
 
     conf_file = os.path.join(config_dir, app, appman_file)
-    parser = SafeConfigParser()
+    parser = ConfigParser()
     if not os.path.isfile(conf_file):
         raise ValueError('%s not found' % (conf_file))
     parser.read(conf_file)
@@ -461,7 +460,7 @@ if __name__ == "__main__":
         #print "running on linux"
         pass
     else:
-        print "ERROR: Unknown platform '{0}'!".format(os_name)
+        print("ERROR: Unknown platform '{0}'!".format(os_name))
 
     parser = ArgumentParser(description="Create and run script for starting rp3 modules")
 

@@ -3,7 +3,7 @@
 import time
 import sys
 import platform
-from ConfigParser import SafeConfigParser
+from configparser import ConfigParser
 from PyDragonfly import Dragonfly_Module, CMessage, copy_to_msg, copy_from_msg, MT_EXIT
 from argparse import ArgumentParser
 from dragonfly_utils import respond_to_ping
@@ -18,7 +18,7 @@ class SampleGenerator(object):
         self.run()
 
     def load_config(self, config_file):
-        self.config = SafeConfigParser()
+        self.config = ConfigParser()
         self.config.read(config_file)
         triggers = self.config.get('main','triggers').split()
         self.triggers = [eval('rc.MT_%s' % (x)) for x in triggers]
@@ -26,7 +26,7 @@ class SampleGenerator(object):
             freq = self.config.get('main','frequency')
             if freq != '':
                 self.freq = self.config.getfloat('main','frequency')
-            print "Freq: %.2f" % (self.freq)
+            print("Freq: %.2f" % (self.freq))
         
     def setup_dragonfly(self, server):
         self.mod = Dragonfly_Module(rc.MID_SAMPLE_GENERATOR, 0)
@@ -37,7 +37,7 @@ class SampleGenerator(object):
         for trigger in self.triggers:
             self.mod.Subscribe(trigger)
         self.mod.SendModuleReady()
-        print "Connected to Dragonfly at", server
+        print("Connected to Dragonfly at", server)
         
         if platform.system() == "Windows":
             # On Windows, the best timer is time.clock()
@@ -57,16 +57,16 @@ class SampleGenerator(object):
                 dest_mod_id = hdr.dest_mod_id
                 if  msg_type == MT_EXIT:
                     if (dest_mod_id == 0) or (dest_mod_id == self.mod.GetModuleID()):
-                        print 'Received MT_EXIT, disconnecting...'
+                        print('Received MT_EXIT, disconnecting...')
                         self.mod.SendSignal(rc.MT_EXIT_ACK)
                         self.mod.DisconnectFromMMM()
                         break;            
                 elif msg_type == rc.MT_PING:
-                    respond_to_ping(self.mod, msg, 'SampleGenerator')
+                    respond_to_ping(self.mod, msg, b'SampleGenerator')
                 elif (msg_type == rc.MT_SPM_SPIKECOUNT):
                     msg_src_mod_id = hdr.src_mod_id
                     if msg_src_mod_id == rc.MID_SPM_MOD:
-                        print "\n\n ** Detected SPM_SPIKECOUNT messages coming from SPM_MOD! Quitting..\n\n";
+                        print("\n\n ** Detected SPM_SPIKECOUNT messages coming from SPM_MOD! Quitting..\n\n")
                         sys.exit(0);
                 else:
                     if len(self.triggers) > 0:
