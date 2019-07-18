@@ -1,16 +1,14 @@
 import sys
 import os
 import re
-from traits.api import Str, HasTraits, DelegatesTo, List, This, \
-                                Dict, Any, Instance, Enum
-from traitsui.api import View, Item, TreeEditor, TreeNode, Group
+from traits.api import Str, HasTraits, List, Dict, Any, Instance, Enum
+from traitsui.api import View, Item, TreeEditor, TreeNode
 import subprocess
 from argparse import ArgumentParser
 from configparser import ConfigParser
 import appman
 
-from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow
-from PyQt5 import QtGui
+from PyQt5.QtWidgets import QApplication, QMainWindow
 
 
 CONFIG_DIR = os.environ['BCI_CONFIG']
@@ -140,8 +138,8 @@ class SubSession(HasTraits):
     descendents = List(CfgFile)
 
     def _descendents_default(self):
-        return [CfgFile(name=v, config_type=k, directory=self.directory, parent=self, ) \
-                    for k,v in self.files.iteritems()]
+        return [CfgFile(name=v, config_type=k, directory=self.directory, parent=self)
+                for k, v in self.files.items()]
 
 
 class Session(HasTraits):
@@ -151,9 +149,8 @@ class Session(HasTraits):
     descendents = List
 
     def _descendents_default(self):
-        for type, name in self.files.iteritems():
-            return [CfgFile(name=v, config_type=k, directory=self.directory, parent=self, ) \
-                    for k,v in self.files.iteritems()]
+        return [CfgFile(name=v, config_type=k, directory=self.directory, parent=self)
+                for k, v in self.files.items()]
 
 
 class CfgFileManager(HasTraits):
