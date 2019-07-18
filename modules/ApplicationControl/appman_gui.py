@@ -105,6 +105,7 @@ class _MovieEditor(Editor):
         self.control = QLabel()
         movie = QMovie(self.value)
         self.control.setMovie(movie)
+        self.control.setAlignment(Qt.AlignTop)
         movie.start()
 
     #-------------------------------------------------------------------------
@@ -171,10 +172,9 @@ class SessionManager(HasTraits):
     appman_busy = Bool(False)
     error_flag = Bool(False)
 
-    search_path = [os.path.dirname(traits.api.__file__)]
     busy_anim_file = Str('busy.gif')
-    error_icon_file = ImageResource('error', search_path=search_path)
-    running_icon_file = ImageResource('running', search_path=search_path)
+    error_icon_file = Str('error.png')
+    running_icon_file = Str('running.png')
 
     session_starting = Bool(False)
     session_running = Bool(False)
@@ -208,8 +208,8 @@ class SessionManager(HasTraits):
                        visible_when='True')),
                     HGroup(
                          Item(name='busy_anim_file', editor=MovieEditor(), show_label=False, visible_when='appman_busy==True'),
-                         Item(name='running_icon_file', editor=ImageEditor(), show_label=False, visible_when='session_running==True'),
-                         Item(name='error_icon_file', editor=ImageEditor(), show_label=False, visible_when='error_flag==True'),
+                         Item(name='running_icon_file', editor=MovieEditor(), show_label=False, visible_when='session_running==True'),
+                         Item(name='error_icon_file', editor=MovieEditor(), show_label=False, visible_when='error_flag==True'),
                          Item('statusbar_text', editor=InstanceEditor(), show_label=False, resizable=True, height=100, style='custom')) #springy=True,
                  ))
 
