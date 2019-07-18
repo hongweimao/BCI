@@ -147,7 +147,6 @@ class SessionManager(HasTraits):
     start = Button()
     stop = Button()
     config = Button()
-    modules = Button()
     kill = Button()
 
     statusbar_text = OutputStream()
@@ -157,7 +156,6 @@ class SessionManager(HasTraits):
     start_enabled = Bool(True)
     stop_enabled = Bool(True)
     config_enabled = Bool(True)
-    modules_enabled = Bool(True)
     kill_enabled = Bool(OS_NAME == "Linux")
 
     session_num = None
@@ -226,18 +224,6 @@ class SessionManager(HasTraits):
         self.check_multi_task_config()
         self.get_last_subject()
 
-
-    def _modules_fired(self):
-        import modman
-        self.modman_frame = modman.MainWindow(self.parent, -1, self.statusbar_text, self.modman_closing)
-
-    def modman_closing(self):
-        print("modman exiting...")
-        self.modman_frame = None
-
-    #def modman_update(self):
-    #    if self.modman_frame is not None:
-    #        self.modman_frame.update_text(status)
 
     def update_status(self, status):
         self.statusbar_text.write(status + '\n')
