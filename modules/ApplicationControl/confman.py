@@ -82,53 +82,49 @@ class CfgFile(HasTraits):
 
         
     def _descendents_default(self):
+        descendents = []
+
         if self.config_type == 'MT':
             multi_task_file = self.directory + '/' + self.name
             parser = ConfigParser()
             parser.read(multi_task_file)
             mt_config = dict(parser.items('config'))
-            mt_app_list = re.sub(r"[\n\r]+", '', mt_config['config_names']).split(',') 
-            l = []
-            files = {'XM' : 'XM.config', 'appman' : 'appman.conf'}
+            mt_app_list = re.sub(r"[\n\r]+", '', mt_config['config_names']).split(',')
+            files = {'XM': 'XM.config', 'appman': 'appman.conf'}
             for app in mt_app_list:
                 app_dir = CONFIG_DIR + '/' + app
-                l.append(SubSession(name=app, files=files, directory=app_dir, parent=self))
-    
+                descendents.append(SubSession(name=app, files=files, directory=app_dir, parent=self))
+
         elif self.config_type == 'XM':
             fd = parse_XM_config(self.directory + '/' + self.name)
             task_state_config_files = fd['task_state_config_files']
-            l = []
             for kid in task_state_config_files:
-                l.append(CfgFile(name=kid, config_type='task_state', directory=self.directory,
-                                 parent=self))
+                descendents.append(CfgFile(name=kid, config_type='task_state', directory=self.directory, parent=self))
             if 'tool_change_config_files' in fd:
                 tool_change_config_files = fd['tool_change_config_files']
                 for kid in tool_change_config_files:
-                    l.append(CfgFile(name=kid, config_type='tool_change', directory=self.directory,
-                                     parent=self))
-                                     
+                    descendents.append(
+                        CfgFile(name=kid, config_type='tool_change', directory=self.directory, parent=self))
+
         elif self.config_type == 'task_state':
             fd = parse_XM_config(self.directory + '/' + self.name)
-            l = [CfgFile(name=fd['target_configurations_file'],
-                         config_type='target_positions', parent=self, directory=self.directory)]
-        
+            descendents = [CfgFile(name=fd['target_configurations_file'],
+                                   config_type='target_positions', parent=self, directory=self.directory)]
+
         elif self.config_type == 'appman':
             parent_name = self.parent.name
             if parent_name == 'multi_task.config':
                 parent_name = self.config_name
-            l = []
             try:
                 fd = parse_appman(self.directory + '/' + self.name, parent_name)
                 kids = fd['module_config_files']
                 for kid in kids:
-                    l.append(CfgFile(name=os.path.relpath(kid, self.directory),
-                             config_type='module_config', parent=self, directory=self.directory))
-            except (ValueError) as e:
+                    descendents.append(CfgFile(name=os.path.relpath(kid, self.directory),
+                                               config_type='module_config', parent=self, directory=self.directory))
+            except ValueError as e:
                 print("Error while reading 'appman.conf' file: ", e)
-        else:
-            l = []
 
-        return l
+        return descendents
 
 
 class SubSession(HasTraits):
