@@ -9,6 +9,9 @@ function Decoder = InitializeDecoder(DecoderType)
 
         case {'ole','OptimalLinearEstimator'}
             Decoder = OptimalLinearEst( );
+
+        case {'hann','HybridANN'}
+            Decoder = HybridANN( );
             
         case {'kf','KalmanFilter'}
             error('Sorry, KalmanFilter not implemented yet1');
