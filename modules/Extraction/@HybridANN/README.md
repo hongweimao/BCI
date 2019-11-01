@@ -1,0 +1,3 @@
+This is an implementation of the hybrid-artificial-neural-network (hANN) decoder for brain computer interfaces. This implementation was designed for the 3D center-out reaching task. The hANN takes in firing rates of a group of recorded neurons and generates estimated velocity command as output. It relies on the speed-offset encoding model, so currently it can only be used for 3D reaching tasks. The algorithm, usage, and performance of the hANN decoder are further explained in the following paper,
+
+Y Inoue, H Mao, SB Suway, J Orellana, AB Schwartz. Decoding arm speed during reaching. Nat. Commun. 9: 5243, 2018.
