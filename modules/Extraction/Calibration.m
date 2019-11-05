@@ -52,6 +52,9 @@ function Calibration(confFileFullPath, mm_ip)
                 
                 case 'LOAD_DECODER_CONFIG'
                     fprintf('Received LOAD_DECODER_CONFIG\n');
+
+                    % tell executive that loading decoder config started
+                    SendSignal CALIBRATION_STARTED;
                     
                     calib_file_path = deblank(char(M.data.full_path));
                     fprintf('Calibration file path: %s\n', calib_file_path);
@@ -75,6 +78,9 @@ function Calibration(confFileFullPath, mm_ip)
                     Unsubscribe 'TRIAL_DATA_SAVED';
 
                     fprintf('Calibration file is loaded\n');
+
+                    % tell executive that loading decoder config is done
+                    SendSignal CALIBRATION_DONE;
                     
                     
                 case 'TRIAL_DATA_SAVED'  % keep incrementally loading data files
@@ -88,6 +94,9 @@ function Calibration(confFileFullPath, mm_ip)
                         % time to do calibration??
                         if (RepNum ~= CM.CurrentRepID) && ismember(CM.CurrentRepID, CM.config.AdaptationSchedule)
 
+                            % tell executive that calibration started
+                            SendSignal CALIBRATION_STARTED;
+
                             fprintf('Doing calibration.. (end of rep %d)\n\n', CM.CurrentRepID);
                             
                             [CM, EMDecoderConfig] = DoCalibration(CM, Data, Decoder);
@@ -98,6 +107,9 @@ function Calibration(confFileFullPath, mm_ip)
                             % remove Data field before sending
                             EMDecoderConfig = rmfield(EMDecoderConfig, 'Data');
                             SendEMDecoderConfig(EMDecoderConfig);
+
+                            % tell executive that calibration is done
+                            SendSignal CALIBRATION_DONE;
                             
                             % if we're done calibrating, stop collecting data and processing messages
                             if (RepNum > CM.config.AdaptationSchedule(end))

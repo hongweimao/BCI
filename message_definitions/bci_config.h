@@ -152,6 +152,9 @@ typedef struct {
 #define MT_ROBOT_JOINT_COMMAND      2270
 #define MT_IDLEGATED_MOVEMENT_COMMAND    2280
 
+#define MT_CALIBRATION_STARTED      2290    // signal
+#define MT_CALIBRATION_DONE         2291
+
 // ============================================================================
 // MACRO DEFINITIONS
 // ============================================================================

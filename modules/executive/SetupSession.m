@@ -100,6 +100,7 @@ function SetupSession
     XM.config.max_num_tries_per_start_loc = -1; % what is the maximal number of tries for a target, before it will never be shown again. -1 means try this target forever until succeeded
     XM.config.enable_denso = 0;
     XM.config.do_video = 0;
+    XM.calibrating     = 0;
 
 
     %--- Task state config files

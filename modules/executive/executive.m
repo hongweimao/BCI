@@ -51,7 +51,9 @@ function executive( ConfigFile, mm_ip)
             'PS3_BUTTON_PRESS' ...
             'PS3_BUTTON_RELEASE' ...
             'EXIT' ...
-            'JUDGE_VERDICT'...
+            'JUDGE_VERDICT' ...
+            'CALIBRATION_STARTED' ...
+            'CALIBRATION_DONE' ...
             'MESSAGE_LOG_SAVED' ...
             'XM_START_SESSION' ...
             'PING' ...
@@ -527,6 +529,9 @@ function ConfigureTaskStateEvents(task_state_config)
         end
     end
 
+    % cancel trial for CALIBRATION_STARTED until CALIBRATION_DONE
+    EVENT_MAP.CALIBRATION_STARTED = 0;
+
 
     if ( ~isempty(fieldnames(EVENT_MAP)))
     	EVENT_MAP.XM_ABORT_SESSION = 0;
@@ -543,6 +548,24 @@ function [outcome, next_state] = HandleTaskStateEnded( id, rcv_event, task_state
     next_state = 0;
 
     if (isempty(rcv_event))
+        return;
+    end
+
+    % cancel trial when CALIBRATION_STARTED is received
+    % and pause experiment until CALIBRATION_DONE
+    if strcmp(rcv_event.msg_type, 'CALIBRATION_STARTED')
+        XM.calibrating = 1;
+
+        % send 'X' button pressed message to pause experiment
+        buttonPress = DF.MDF.PS3_BUTTON_PRESS;
+        buttonPress.whichButton = int32(DF.defines.PS3_B_X);
+        SendMessage('PS3_BUTTON_PRESS', buttonPress);
+        pause(0.2);
+        buttonRelease = DF.MDF.PS3_BUTTON_RELEASE;
+        buttonRelease.whichButton = int32(DF.defines.PS3_B_X);
+        SendMessage('PS3_BUTTON_RELEASE', buttonRelease);
+
+        outcome = 0;
         return;
     end
 
