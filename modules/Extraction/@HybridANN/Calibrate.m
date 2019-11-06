@@ -96,11 +96,12 @@ function [this, TF] = Calibrate(this, Data, Options)
     % simulate velocity profile for extra trials
     extraVel = SimulateVel_CenterOut3D(speedProfile, this.SimParam);
     % simulate neural activity for extra trials
-    extraNeural = SimulateNeuralData(extraVel, LR.B(PredictiveCellMask, :));
+    extraNeural = SimulateNeuralData(extraVel, LR.B(PredictiveCellMask, :), ...
+                                     Options.AdaptationFilterCoeffs, 1/this.SimParam.Framerate);
     
     
     % train ANN
-    Y      = extraNeural.SC;             % simulated data for training
+    Y      = extraNeural.estimatedFR;    % simulated data for training
     validY = FR(PredictiveCellMask, :);  % real data for validation
     annX   = [Y validY];                 % firing rates as inputs
     
@@ -267,7 +268,7 @@ function Data = SimulateVel_CenterOut3D(speedProfile, simParam)
     
 
 %%========================= Simulate neural data =========================
-function Data = SimulateNeuralData(VelData, B)
+function Data = SimulateNeuralData(VelData, B, filterCoeffs, dt)
     % generate firing rate using the offset model
     X  = [ones(1, size(VelData.Vel, 2)); ...
           VelData.Vel; ...
@@ -275,13 +276,17 @@ function Data = SimulateNeuralData(VelData, B)
     FR = B * X(1:size(B, 2), :);
     FR(FR < 0) = 0;
 
-    SC = poissrnd(FR);
+    SC = poissrnd(FR * dt);     % simulate per time bin spike counts
+    estimatedFR = SC / dt;
+    filteredFR  = filter(filterCoeffs, 1, estimatedFR, [], 2);
 
     % return simulated neural data
     Data    = VelData;
     Data.B  = B;
     Data.FR = FR;
     Data.SC = SC;
+    Data.estimatedFR = estimatedFR;
+    Data.filteredFR  = filteredFR;
     
 
 %%========================= Train ANN =========================
