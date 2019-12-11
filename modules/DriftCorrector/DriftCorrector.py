@@ -17,8 +17,11 @@ from dragonfly_utils import respond_to_ping
 import numpy as np
 from DragonflyThread import DragonflyThread, Subscription
 
-from enthought.traits.api import HasTraits, Float, Instance, List, Range, Button
-from enthought.traits.ui.api import Handler, View, Item, UItem, StatusItem, \
+# from enthought.traits.api import HasTraits, Float, Instance, List, Range, Button
+# from enthought.traits.ui.api import Handler, View, Item, UItem, StatusItem, \
+#      HGroup, VGroup, RangeEditor
+from traits.api import HasTraits, Float, Instance, List, Range, Button
+from traitsui.api import Handler, View, Item, UItem, StatusItem, \
      HGroup, VGroup, RangeEditor
 
 
@@ -174,6 +177,6 @@ if __name__ == "__main__":
 
     print("Using MM IP=%s" % (args.mm_ip))
 
-    app = wx.PySimpleApp()
+    app = wx.App(False)
     frame = MainWindow(args.mm_ip)
     app.MainLoop()
